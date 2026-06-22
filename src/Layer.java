@@ -1,4 +1,4 @@
-
+import Activations.ActivationFunction;
 
 public class Layer {
 
@@ -8,7 +8,7 @@ public class Layer {
      * O tamanho deste array define a "largura" da camada para o MNIST uma boa escolha seria,
      * por exemplo, 128 neurónios na camada escondida e 10 na camada de output (um por dígito).
      */
-    private Neuron[] neurons;
+    public Neuron[] neurons;
 
     /**
      * um enum (com valores HIDDEN e OUTPUT) que indica que tipo de camada esta é.
@@ -19,7 +19,7 @@ public class Layer {
     private LayerType layerType;
 
     /**
-     * uma referência à interface ActivationFunction.
+     * uma referência à interface Activations.ActivationFunction.
      * A Layer delega completamente a lógica de ativação para este objecto
      * ela própria não sabe se está a usar ReLU, Sigmoid ou Softmax.
      * Isso é decidido quando a camada é construída, e é passado no construtor.
@@ -48,9 +48,10 @@ public class Layer {
     public Layer(int inputSize, int neuronCount, ActivationFunction activationFn, LayerType layerType){
         this.inputs = new double[inputSize];
         this.neurons = new Neuron[neuronCount];
+        WeightInitializer weightInitializer = new WeightInitializer();
 
         for (int i = 0; i < neuronCount; i++) {
-            this.neurons[i] = new Neuron(WeightInitializer.random(inputSize), 0);
+            this.neurons[i] = new Neuron(weightInitializer.randomW(inputSize, neuronCount)[i], 0);
         }
 
         this.layerType = layerType;
@@ -67,7 +68,7 @@ public class Layer {
      * @param inputs outputs da camada anterior (ou a imagem, se for a primeira camada).
      * @return array de outputs desta camada.
      */
-    private double[] forward(double[] inputs){
+    public double[] forward(double[] inputs){
         this.inputs = inputs.clone();
         double[] temp = new double[0];
 
@@ -86,10 +87,10 @@ public class Layer {
      * @param deltas um array de double onde cada posição i contém o sinal de erro atribuído ao neurónio i desta camada.
      * @return array de errorSignal para a camada anterior
      */
-    private double[] backwards(double[] deltas){
+    public double[] backward(double[] deltas){
         for (int i = 0; i < this.neurons.length; i++) {
-            neurons[i].computeDelta(deltas[i]);
-            neurons[i].accumulateGradients(this.inputs);
+            this.neurons[i].computeDelta(deltas[i]);
+            this.neurons[i].accumulateGradients(this.inputs);
         }
 
         double[] errorSignal = new double[this.inputs.length];
@@ -108,7 +109,7 @@ public class Layer {
      * Este mét0do é chamado pela NeuralNetwork depois de processar todos os exemplos de um batch.
      * @param learningRate racio de aprendizagem
      */
-    private void updateWeights(double learningRate){
+    public void updateWeights(double learningRate){
         for (Neuron neuron : this.neurons) {
             neuron.updateWeights(learningRate);
         }
@@ -119,7 +120,7 @@ public class Layer {
      * o output desta camada é passado como input para a seguinte.
      * @return array de double com o output actual de cada neurónio.
      */
-    private double[] getOutputs(){
+    public double[] getOutputs(){
         double[] outputs = new double[this.neurons.length];
         for (int i = 0; i < this.neurons.length; i++) {
             outputs[i] = this.neurons[i].getOutput();

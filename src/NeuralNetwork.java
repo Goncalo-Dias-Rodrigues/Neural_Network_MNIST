@@ -1,4 +1,5 @@
-
+import Activations.ActivationFunction;
+import Activations.Sigmoid;
 
 public class NeuralNetwork {
     /*
@@ -35,11 +36,6 @@ public class NeuralNetwork {
 
 
     /**
-     * Com base nesse array crias cada Layer, e para cada camada determinas quantos inputs cada neurónio vai receber
-     * que é o tamanho da camada anterior. Delegar a criação dos pesos ao WeightInitializer é a decisão certa aqui:
-     * para cada camada, chamás o inicializador com (tamanho_camada_anterior, tamanho_camada_actual) e
-     * passas os pesos resultantes a cada Neuron.
-     *
      * layerSizes tem o formato {784, 128, 10}. O índice 0 é o número de inputs brutos (os pixels), não uma camada.
      * Crias layers com tamanho layerSizes.length - 1.
      * Para cada camada i, passas layerSizes[i] como inputSize e layerSizes[i+1] como neuronCount ao construtor da Layer.
@@ -50,35 +46,108 @@ public class NeuralNetwork {
      */
     public NeuralNetwork(int[] layerSizes, double learningRate) {
         this.layers = new Layer[layerSizes.length - 1];
+        Sigmoid sigmoid = new Sigmoid();
 
         for (int i = 0; i < this.layers.length; i++) {
             if (i == this.layers.length - 1){
-                this.layers[i] = new Layer(layerSizes[i], layerSizes[i+1], ActivationFunction, LayerType.OUTPUT);
+                this.layers[i] = new Layer(layerSizes[i], layerSizes[i+1], sigmoid, LayerType.OUTPUT);
             }
             else {
-                this.layers[i] = new Layer(layerSizes[i], layerSizes[i+1], ActivationFunction, LayerType.HIDDEN);
+                this.layers[i] = new Layer(layerSizes[i], layerSizes[i+1], sigmoid, LayerType.HIDDEN);
             }
         }
         this.learningRate = learningRate;
     }
 
+    /**
+     * percorre layers[] da esquerda para a direita.
+     * Começa com o array de pixels como input da primeira camada, chama layers[0].forward(input),
+     * e usa o array de outputs devolvido como input de layers[1].forward(...), e assim sucessivamente.
+     * @param input array de inputs
+     * @return array de outputs da última camada
+     */
     private double[] forward(double[] input){
+        double[] temp = new double[0];
 
+        for (int i = 0; i < this.layers.length; i++) {
+            if (i == 0){
+                temp = this.layers[i].forward(input);
+            }
+            else{
+                temp = this.layers[i].forward(temp);
+            }
+        }
+
+        return temp;
     }
 
+    /**
+     * este é o mét0do mais delicado.
+     * Começa por calcular os deltas da camada de output:
+     * para cada neurónio i da última camada, o delta é simplesmente output[i] - target[i].
+     * Passas esses deltas a layers[última].backward(deltas), que devolve um errorSignal[].
+     * Esse errorSignal torna-se os deltas da camada anterior, e assim de seguida até chegares à primeira camada.
+     * No fim chamas updateWeights em todas as camadas.
+     * @param target
+     */
     private void backward(double[] target){
+        double[] deltas = new double[this.layers[this.layers.length-1].getSize()];
+        double[] outputs = this.layers[this.layers.length-1].getOutputs();
+
+
+        for (int i = 0; i < outputs.length; i++) {
+            deltas[i] = outputs[i] - target[i];
+        }
+
+        double[] errorSignal = deltas;
+
+        for (int i = this.layers.length-1; i >= 0; i--) {
+            errorSignal = this.layers[i].backward(errorSignal);
+        }
+
+        for (int i = 0; i < this.layers.length; i++) {
+            this.layers[i].updateWeights(this.learningRate);
+        }
+    }
+
+    /**
+     * o loop de treino principal.
+     * Para cada epoch, percorre todos os exemplos do dataset;
+     * para cada exemplo chama forward, depois backward com o target one-hot correspondente ao label.
+     * Tipicamente no fim de cada epoch calculas a loss média e imprimes o progresso.
+     * Mais tarde, quando introduzires mini-batches no Trainer,
+     * este mét0do fica mais simples — delega o loop ao Trainer e só gere a lógica de alto nível.
+     */
+    private void train(double[][] data, int[] labels, int epochs){
+
+        for (int i = 0; i < epochs; i++) {
+            this.forward();
+            this.backward();
+        }
 
     }
 
-    private void train(){
-
-    }
-
+    /**
+     * faz apenas o forward pass e devolve um int — o índice do output com maior valor (o argmax do array de probabilidades).
+     * É o dígito que a rede acha mais provável. Não há backward, não há update de pesos — é só inferência.
+     * @param input
+     * @return
+     */
     private int predict(double[] input){
 
     }
 
-    private double computeLoss()
+    /**
+     * calcula a Cross-Entropy Loss para um único exemplo: percorre as 10 posições e calcula -Σ(target[i] * log(output[i])).
+     * Como o target é one-hot (apenas uma posição é 1, as restantes são 0),
+     * na prática só uma posição contribui — é o negativo do logaritmo da probabilidade atribuída à classe correcta.
+     * Um valor próximo de zero significa que a rede está confiante e certa; um valor alto significa erro.
+     * Guardas este valor em lossHistory para monitorização.
+     * @return
+     */
+    private double computeLoss(double[] output, double[] target){
+
+    }
 
 
 

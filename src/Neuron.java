@@ -1,3 +1,5 @@
+import Activations.ActivationFunction;
+
 import java.util.Arrays;
 
 public class Neuron {
